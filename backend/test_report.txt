@@ -1,0 +1,4 @@
+Test Result Log
+==============
+SUCCESS (gemini-flash-latest): Hello! How can I help you today?
+SUCCESS (gemini-2.5-flash): Hello!

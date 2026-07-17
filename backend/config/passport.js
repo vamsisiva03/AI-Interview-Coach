@@ -3,6 +3,7 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const GithubStrategy = require("passport-github2").Strategy;
 const OpenIDConnectStrategy = require("passport-openidconnect").Strategy;
 const User = require("../models/User");
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
 /* ================= SERIALIZE ================= */
 
@@ -27,7 +28,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:5000/api/auth/google/callback"
+      callbackURL: `${BACKEND_URL}/api/auth/google/callback`
     },
 
     async (accessToken, refreshToken, profile, done) => {
@@ -74,7 +75,7 @@ passport.use(
     {
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: "http://localhost:5000/api/auth/github/callback"
+      callbackURL: `${BACKEND_URL}/api/auth/github/callback`
     },
 
     async (accessToken, refreshToken, profile, done) => {
@@ -123,7 +124,7 @@ passport.use(
       userInfoURL: "https://api.linkedin.com/v2/userinfo",
       clientID: process.env.LINKEDIN_CLIENT_ID,
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-      callbackURL: "http://localhost:5000/api/auth/linkedin/callback",
+      callbackURL: `${BACKEND_URL}/api/auth/linkedin/callback`,
       scope: ["openid", "profile", "email"]
     },
     async (issuer, profile, done) => {

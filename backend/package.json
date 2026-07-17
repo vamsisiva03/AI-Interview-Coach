@@ -28,10 +28,7 @@
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
-    "passport-linkedin-oauth2": "^2.0.0",
     "passport-openidconnect": "^0.1.2",
-    "pdf-parse": "^2.4.5",
-    "react-webcam": "^7.2.0",
     "uuid": "^13.0.0"
   }
 }

@@ -7,7 +7,7 @@ router.post("/generate-question", async (req, res) => {
 
   const { domain } = req.body;
 
-  console.log("Domain received:", domain);
+
 
   const question = `Explain the core concepts of ${domain}. Give practical examples.`;
 
@@ -23,7 +23,7 @@ router.post("/evaluate-answer", async (req, res) => {
 
   const { question, answer } = req.body;
 
-  console.log("Evaluating answer...");
+
 
   const result = `
 Score: 7/10

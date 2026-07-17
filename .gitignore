@@ -6,7 +6,7 @@ node_modules/
 .env.*
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 
@@ -33,3 +33,7 @@ backend/node_modules/
 
 # Misc
 *.cache
+*.tmp
+
+# Uploads
+uploads/

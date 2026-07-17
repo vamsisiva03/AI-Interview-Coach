@@ -29,13 +29,13 @@ router.put("/update-profile", auth, async (req, res) => {
     }
 
     let { name, bio, notifications, privacy } = req.body;
-    console.log("[userRoutes] Update Profile - Incoming name:", name);
+
 
     // Auto-generate name from email if blank
     if (!name || name.trim() === "") {
       const emailBase = user.email.split("@")[0];
       name = emailBase.charAt(0).toUpperCase() + emailBase.slice(1);
-      console.log("[userRoutes] Auto-generated name:", name);
+
     }
 
     const updatedData = {
@@ -44,14 +44,14 @@ router.put("/update-profile", auth, async (req, res) => {
       notifications: notifications || user.notifications,
       privacy: privacy || user.privacy
     };
-    console.log("[userRoutes] Final updatedData:", updatedData);
+
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: updatedData },
       { new: true, runValidators: true }
     ).select("-password");
-    console.log("[userRoutes] Result of update:", updatedUser.name);
+
 
     res.json(updatedUser);
   } catch (err) {

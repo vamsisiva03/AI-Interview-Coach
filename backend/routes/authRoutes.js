@@ -381,7 +381,7 @@ router.post("/forgot-password", async (req, res) => {
     const info = await transporter.sendMail(mailOptions);
     
     if (!process.env.EMAIL_USER) {
-      console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+
     }
 
     res.json({ msg: "Email sent" });
@@ -430,5 +430,5 @@ router.post("/reset-password/:token", async (req, res) => {
   }
 });
 
-console.log("--- authRoutes.js routes registered ---");
+
 module.exports = router;

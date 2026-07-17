@@ -9,10 +9,10 @@ let sessions = {};
 
 // Start Interview
 router.post("/start-interview", authMiddleware, (req, res) => {
-  console.log("[interviewRoutes] POST /start-interview - Body:", req.body);
+
   const { domain, difficulty = "Beginner" } = req.body;
   if (!domain) {
-    console.warn("[interviewRoutes] Start Interview failed: missing domain");
+
     return res.status(400).json({ error: "Domain is required" });
   }
 
@@ -25,17 +25,17 @@ router.post("/start-interview", authMiddleware, (req, res) => {
     scores: []
   };
 
-  console.log("[interviewRoutes] Session created:", sessionId);
+
   res.json({ sessionId, domain, difficulty });
 });
 
 // Generate Multiple Questions
 router.post("/generate-questions", authMiddleware, async (req, res) => {
-  console.log("[interviewRoutes] POST /generate-questions - Body:", req.body);
+
   const { sessionId, count = 10 } = req.body;
 
   if (!sessionId || !sessions[sessionId] || sessions[sessionId].userId !== req.user.id) {
-    console.warn("[interviewRoutes] Generate Questions failed: invalid or unauthorized session", sessionId);
+
     return res.status(404).json({ error: "Session not found or missing sessionId" });
   }
 
@@ -43,12 +43,12 @@ router.post("/generate-questions", authMiddleware, async (req, res) => {
   const { domain, difficulty } = session;
 
   try {
-    console.log("[interviewRoutes] Calling generateQuestions for domain:", domain);
+
     // Pass existing questions to ensure AI doesn't duplicate them
     const newQuestions = await generateQuestions(domain, session.questions, difficulty, count);
     session.questions = [...session.questions, ...newQuestions];
     
-    console.log("[interviewRoutes] Successfully generated", newQuestions.length, "questions");
+
     res.json({ success: true, questions: session.questions });
   } catch (error) {
     console.error("[interviewRoutes] Error in /generate-questions:", error);

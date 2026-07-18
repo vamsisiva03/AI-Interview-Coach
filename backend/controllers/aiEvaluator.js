@@ -18,7 +18,7 @@ async function callAICompletions(prompt, apiKey) {
     console.error("[aiEvaluator] callAICompletions Google SDK failed:", error);
     const err = new Error();
     const errMsg = error.message || "";
-    if (errMsg.includes("API key not valid") || errMsg.includes("401") || errMsg.includes("Key not found")) {
+    console.error("Full Gemini Error:", error); if (errMsg.includes("API key not valid") || errMsg.includes("401") || errMsg.includes("Key not found")) {
       err.status = 401;
       err.message = "Unauthorized: Invalid Gemini API key (401)";
     } else if (errMsg.includes("429") || errMsg.includes("Quota exceeded") || errMsg.includes("ResourceExhausted")) {
@@ -33,10 +33,10 @@ async function callAICompletions(prompt, apiKey) {
 }
 
 async function generateQuestions(domain, previousQuestions = [], difficulty = "Beginner", count = 10, resumeText = "") {
-  const apiKey = process.env.GEMINI_API_KEY; 
+  const apiKey = process.env.GEMINI_API_KEY;
 
-  const previousContext = previousQuestions.length > 0 
-    ? `Previous questions asked: ${previousQuestions.join('; ')}.` 
+  const previousContext = previousQuestions.length > 0
+    ? `Previous questions asked: ${previousQuestions.join('; ')}.`
     : '';
 
   let difficultyInstruction = "";
@@ -62,7 +62,7 @@ async function generateQuestions(domain, previousQuestions = [], difficulty = "B
 
   try {
     let text = await callAICompletions(prompt, apiKey);
-    
+
     // Clean up possible markdown
     if (text.startsWith('```json')) {
       text = text.replace(/^```json/, '').replace(/```$/, '').trim();
@@ -99,6 +99,11 @@ async function generateQuestions(domain, previousQuestions = [], difficulty = "B
 async function evaluateAnswer(question, answer) {
   const apiKey = process.env.GEMINI_API_KEY;
 
+  console.log("========== GEMINI DEBUG ==========");
+  console.log("API Key Exists:", !!apiKey);
+  console.log("API Key Length:", apiKey ? apiKey.length : 0);
+  console.log("API Key Starts With:", apiKey ? apiKey.substring(0, 6) : "NONE");
+  console.log("==================================");
   const prompt = `
   You are an expert technical interviewer evaluating a candidate's answer.
   
@@ -120,13 +125,13 @@ async function evaluateAnswer(question, answer) {
 
   try {
     let text = await callAICompletions(prompt, apiKey);
-    
+
     if (text.startsWith('```json')) {
       text = text.replace(/^```json/, '').replace(/```$/, '').trim();
     } else if (text.startsWith('```')) {
       text = text.replace(/^```/, '').replace(/```$/, '').trim();
     }
-    
+
     try {
       return JSON.parse(text);
     } catch (e) {

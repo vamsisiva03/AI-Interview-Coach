@@ -1,6 +1,8 @@
 const axios = require("axios");
 
-async function callAICompletions(prompt, apiKey) {
+async function callAICompletions(prompt, apiKey, maxTokens = 1000, temperature = 0.7) {
+  const finalMaxTokens = Math.min(maxTokens, 1000);
+
   if (!apiKey || apiKey.trim() === "" || apiKey === "your_openrouter_api_key") {
     console.error("[aiEvaluator] API Key missing or misconfigured");
     const err = new Error("Unauthorized: AI API Key is missing or misconfigured (401)");
@@ -11,7 +13,9 @@ async function callAICompletions(prompt, apiKey) {
   try {
     const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
       model: "openai/gpt-4.1-mini",
-      messages: [{ role: "user", content: prompt }]
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: finalMaxTokens,
+      temperature: temperature
     }, {
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -73,7 +77,7 @@ async function generateQuestions(domain, previousQuestions = [], difficulty = "B
   `;
 
   try {
-    let text = await callAICompletions(prompt, apiKey);
+    let text = await callAICompletions(prompt, apiKey, 800, 0.7);
 
     // Clean up possible markdown
     if (text.startsWith('```json')) {
@@ -131,7 +135,7 @@ async function evaluateAnswer(question, answer) {
   `;
 
   try {
-    let text = await callAICompletions(prompt, apiKey);
+    let text = await callAICompletions(prompt, apiKey, 500, 0.7);
 
     if (text.startsWith('```json')) {
       text = text.replace(/^```json/, '').replace(/```$/, '').trim();

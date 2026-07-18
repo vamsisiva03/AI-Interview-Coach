@@ -11,12 +11,21 @@ async function callAICompletions(prompt, apiKey, maxTokens = 1000, temperature =
   }
 
   try {
-    const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
+    const requestBody = {
       model: "deepseek/deepseek-chat-v3-0324:free",
       messages: [{ role: "user", content: prompt }],
       max_tokens: finalMaxTokens,
       temperature: temperature
-    }, {
+    };
+
+    console.log("========== OPENROUTER DEBUG ==========");
+    console.log("Model:", requestBody.model);
+    console.log("Max Tokens:", finalMaxTokens);
+    console.log("Temperature:", temperature);
+    console.log("Request Body:", JSON.stringify(requestBody, null, 2));
+    console.log("======================================");
+
+    const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", requestBody, {
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json"

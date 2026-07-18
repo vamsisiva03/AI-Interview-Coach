@@ -70,12 +70,16 @@ passport.use(
 
 /* ================= GITHUB LOGIN ================= */
 
+if (!process.env.GITHUB_CALLBACK_URL) {
+  console.warn("WARNING: GITHUB_CALLBACK_URL environment variable is missing.");
+}
+
 passport.use(
   new GithubStrategy(
     {
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: process.env.GITHUB_CALLBACK_URL || `${BACKEND_URL}/api/auth/github/callback`
+      callbackURL: process.env.GITHUB_CALLBACK_URL
     },
 
     async (accessToken, refreshToken, profile, done) => {

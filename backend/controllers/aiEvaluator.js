@@ -12,7 +12,7 @@ async function callAICompletions(prompt, apiKey, maxTokens = 1000, temperature =
 
   try {
     const requestBody = {
-      model: "deepseek/deepseek-chat-v3-0324:free",
+      model: process.env.OPENROUTER_MODEL || "deepseek/deepseek-chat-v3-0324",
       messages: [{ role: "user", content: prompt }],
       max_tokens: finalMaxTokens,
       temperature: temperature

@@ -15,7 +15,7 @@ const userRoutes = require("./routes/userRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
-
+app.set("trust proxy", 1);
 /* ================= SECURITY ================= */
 
 app.use(helmet());

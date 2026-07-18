@@ -80,27 +80,43 @@ passport.use(
 
     async (accessToken, refreshToken, profile, done) => {
       try {
-        let user = await User.findOne({ email: profile.emails?.[0]?.value });
+        const email = profile.emails?.[0]?.value || `${profile.id}@github.com`;
+
+        // 1. Search for an existing user by GitHub ID first.
+        let user = await User.findOne({ providerId: profile.id, provider: "github" });
 
         if (!user) {
-          user = new User({
-            name: profile.username,
-            email: profile.emails?.[0]?.value || `${profile.id}@github.com`,
-            providerId: profile.id,
-            provider: "github",
-            profileImage: profile.photos?.[0]?.value
-          });
-          await user.save();
+          // 2. If not found, search by email.
+          user = await User.findOne({ email: email });
+
+          if (user) {
+            // 3. If the email already exists: Link githubId to the existing account if missing.
+            user.name = profile.username || user.name;
+            user.profileImage = profile.photos?.[0]?.value || user.profileImage;
+            
+            if (!user.providerId || user.provider === "local") {
+              user.providerId = profile.id;
+              user.provider = "github";
+            }
+            await user.save();
+          } else {
+            // 4. Only create a new user when neither GitHub ID nor email exists.
+            user = new User({
+              name: profile.username || "GitHub User",
+              email: email,
+              providerId: profile.id,
+              provider: "github",
+              profileImage: profile.photos?.[0]?.value
+            });
+            await user.save();
+          }
         } else {
-          // Sync profile details
+          // If found by GitHub ID, sync profile details
           user.name = profile.username || user.name;
           user.profileImage = profile.photos?.[0]?.value || user.profileImage;
-          if (!user.providerId) {
-            user.providerId = profile.id;
-            user.provider = "github";
-          }
           await user.save();
         }
+        
         return done(null, user);
       } catch (error) {
         return done(error, null);

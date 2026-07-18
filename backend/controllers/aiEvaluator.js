@@ -1,52 +1,13 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const axios = require("axios");
 
 async function callAICompletions(prompt, apiKey) {
-  if (!apiKey || apiKey.trim() === "" || apiKey === "your_openrouter_api_key") {
+  if (!apiKey || apiKey.trim() === "" || apiKey === "your_gemini_api_key") {
+    console.error("[aiEvaluator] API Key missing or misconfigured");
     const err = new Error("Unauthorized: AI API Key is missing or misconfigured (401)");
     err.status = 401;
     throw err;
   }
 
-  // 1. If key is OpenRouter API Key
-  if (apiKey.startsWith("sk-or-")) {
-    try {
-      const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "user", content: prompt }]
-      }, {
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "HTTP-Referer": process.env.CLIENT_URL || "http://localhost:3000",
-          "X-Title": "AI Interview Coach"
-        },
-        timeout: 25000 // 25s timeout
-      });
-
-      if (response.data?.choices?.[0]?.message?.content) {
-        return response.data.choices[0].message.content.trim();
-      }
-      throw new Error("Invalid response format from OpenRouter completions");
-    } catch (error) {
-      const err = new Error();
-      if (error.response) {
-        err.status = error.response.status;
-        if (error.response.status === 401) {
-          err.message = "Unauthorized: Invalid OpenRouter API Key (401)";
-        } else if (error.response.status === 429) {
-          err.message = "Rate limit exceeded: Too many requests to the AI engine (429)";
-        } else {
-          err.message = `AI Engine Error (${error.response.status}): ${error.response.data?.error?.message || error.message}`;
-        }
-      } else {
-        err.status = 500;
-        err.message = `Network/Connection failure with AI Engine: ${error.message}`;
-      }
-      throw err;
-    }
-  }
-
-  // 2. If key is Google API Key (fallback using native SDK)
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -54,7 +15,7 @@ async function callAICompletions(prompt, apiKey) {
     const response = await result.response;
     return response.text().trim();
   } catch (error) {
-    console.error("[aiEvaluator] callAICompletions Google SDK fallback failed:", error);
+    console.error("[aiEvaluator] callAICompletions Google SDK failed:", error);
     const err = new Error();
     const errMsg = error.message || "";
     if (errMsg.includes("API key not valid") || errMsg.includes("401") || errMsg.includes("Key not found")) {
@@ -72,7 +33,7 @@ async function callAICompletions(prompt, apiKey) {
 }
 
 async function generateQuestions(domain, previousQuestions = [], difficulty = "Beginner", count = 10, resumeText = "") {
-  const apiKey = process.env.OPENROUTER_API_KEY; 
+  const apiKey = process.env.GEMINI_API_KEY; 
 
   const previousContext = previousQuestions.length > 0 
     ? `Previous questions asked: ${previousQuestions.join('; ')}.` 
@@ -118,21 +79,25 @@ async function generateQuestions(domain, previousQuestions = [], difficulty = "B
       }
       return [text];
     } catch (e) {
+      console.error("[aiEvaluator] Failed to parse generated questions as JSON:", text);
       const arrayMatch = text.match(/\[.*\]/s);
       if (arrayMatch) {
         try {
           return JSON.parse(arrayMatch[0]);
-        } catch (e2) {}
+        } catch (e2) {
+          console.error("[aiEvaluator] Regex fallback parsing also failed:", e2);
+        }
       }
       return [text];
     }
   } catch (error) {
+    console.error("[aiEvaluator] generateQuestions error:", error.message);
     throw new Error(error.message || "Failed to generate questions");
   }
 }
 
 async function evaluateAnswer(question, answer) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   const prompt = `
   You are an expert technical interviewer evaluating a candidate's answer.
@@ -165,9 +130,11 @@ async function evaluateAnswer(question, answer) {
     try {
       return JSON.parse(text);
     } catch (e) {
+      console.error("[aiEvaluator] Failed to parse evaluation response as JSON:", text);
       throw new Error("Evaluation response parsing failed");
     }
   } catch (error) {
+    console.error("[aiEvaluator] evaluateAnswer error:", error.message);
     throw new Error(error.message || "Failed to evaluate answer");
   }
 }

@@ -1,7 +1,7 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const axios = require("axios");
 
 async function callAICompletions(prompt, apiKey) {
-  if (!apiKey || apiKey.trim() === "" || apiKey === "your_gemini_api_key") {
+  if (!apiKey || apiKey.trim() === "" || apiKey === "your_openrouter_api_key") {
     console.error("[aiEvaluator] API Key missing or misconfigured");
     const err = new Error("Unauthorized: AI API Key is missing or misconfigured (401)");
     err.status = 401;
@@ -9,31 +9,43 @@ async function callAICompletions(prompt, apiKey) {
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text().trim();
+    const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
+      model: "openai/gpt-4.1-mini",
+      messages: [{ role: "user", content: prompt }]
+    }, {
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      timeout: 25000 // 25s timeout
+    });
+
+    if (response.data?.choices?.[0]?.message?.content) {
+      return response.data.choices[0].message.content.trim();
+    }
+    throw new Error("Invalid response format from OpenRouter completions");
   } catch (error) {
-    console.error("[aiEvaluator] callAICompletions Google SDK failed:", error);
+    console.error("[aiEvaluator] callAICompletions OpenRouter API failed:", error);
     const err = new Error();
-    const errMsg = error.message || "";
-    console.error("Full Gemini Error:", error); if (errMsg.includes("API key not valid") || errMsg.includes("401") || errMsg.includes("Key not found")) {
-      err.status = 401;
-      err.message = "Unauthorized: Invalid Gemini API key (401)";
-    } else if (errMsg.includes("429") || errMsg.includes("Quota exceeded") || errMsg.includes("ResourceExhausted")) {
-      err.status = 429;
-      err.message = "Rate limit exceeded: Gemini quota limits reached (429)";
+    if (error.response) {
+      err.status = error.response.status;
+      if (error.response.status === 401) {
+        err.message = "Unauthorized: Invalid OpenRouter API Key (401)";
+      } else if (error.response.status === 429) {
+        err.message = "Rate limit exceeded: OpenRouter quota limits reached (429)";
+      } else {
+        err.message = `AI Engine Error (${error.response.status}): ${error.response.data?.error?.message || error.message}`;
+      }
     } else {
       err.status = 500;
-      err.message = `Gemini Generation Error: ${errMsg}`;
+      err.message = `Network/Connection failure with AI Engine: ${error.message}`;
     }
     throw err;
   }
 }
 
 async function generateQuestions(domain, previousQuestions = [], difficulty = "Beginner", count = 10, resumeText = "") {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
 
   const previousContext = previousQuestions.length > 0
     ? `Previous questions asked: ${previousQuestions.join('; ')}.`
@@ -97,13 +109,8 @@ async function generateQuestions(domain, previousQuestions = [], difficulty = "B
 }
 
 async function evaluateAnswer(question, answer) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
 
-  console.log("========== GEMINI DEBUG ==========");
-  console.log("API Key Exists:", !!apiKey);
-  console.log("API Key Length:", apiKey ? apiKey.length : 0);
-  console.log("API Key Starts With:", apiKey ? apiKey.substring(0, 6) : "NONE");
-  console.log("==================================");
   const prompt = `
   You are an expert technical interviewer evaluating a candidate's answer.
   

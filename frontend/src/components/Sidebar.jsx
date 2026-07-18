@@ -15,7 +15,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar';
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_URL = process.env.REACT_APP_API_URL;
 
 const Sidebar = ({ mobileOpen, onClose }) => {
   const { user, logout } = useAuth();

@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_for_development';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error("CRITICAL ERROR: JWT_SECRET environment variable is missing.");
+}
 
 module.exports = function (req, res, next) {
   // Get token from header

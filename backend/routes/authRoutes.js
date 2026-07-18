@@ -11,12 +11,11 @@ const auth = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+const CLIENT_URL = process.env.CLIENT_URL;
 
 const User = require("../models/User");
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "super_secret_jwt_key_for_development";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 
 /* ================= TOKEN GENERATOR ================= */
@@ -292,7 +291,7 @@ router.post("/upload-photo", auth, upload.single("profileImage"), async (req, re
       return res.status(400).json({ msg: "No file uploaded" });
     }
 
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+    const backendUrl = process.env.BACKEND_URL;
     const imageUrl = `${backendUrl}/uploads/${req.file.filename}`;
     
     // Update user in database

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL;
 const FONT = '"Inter", ui-sans-serif, system-ui, -apple-system, sans-serif';
 
 /* ── Official multicolor Google G icon ── */

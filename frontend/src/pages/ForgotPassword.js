@@ -4,7 +4,7 @@ import { Mail, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Sparkles } from 'l
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_URL = process.env.REACT_APP_API_URL;
 
 function ForgotPassword() {
   const navigate = useNavigate();

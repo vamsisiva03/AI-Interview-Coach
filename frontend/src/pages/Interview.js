@@ -176,7 +176,7 @@ function Interview() {
     return () => clearInterval(interval);
   }, [isLoading, view]);
 
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+  const API_URL = process.env.REACT_APP_API_URL;
   const apiBase = `${API_URL}/api/interview`;
 
   const getAuthHeaders = useCallback(() => ({

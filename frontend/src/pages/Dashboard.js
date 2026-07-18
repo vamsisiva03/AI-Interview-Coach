@@ -75,7 +75,7 @@ const getMotivation = (streak, completedCount, avgPerformance) => {
   return "Keep practicing — every session sharpens your responses. You've got this!";
 };
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_URL = process.env.REACT_APP_API_URL;
 
 const Dashboard = () => {
   const { user, login, loading } = useAuth();

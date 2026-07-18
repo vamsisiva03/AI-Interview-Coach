@@ -12,7 +12,7 @@ async function callAICompletions(prompt, apiKey, maxTokens = 1000, temperature =
 
   try {
     const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-      model: "openai/gpt-4.1-mini",
+      model: "deepseek/deepseek-chat:free",
       messages: [{ role: "user", content: prompt }],
       max_tokens: finalMaxTokens,
       temperature: temperature

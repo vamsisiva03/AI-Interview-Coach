@@ -21,10 +21,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 /* ================= TOKEN GENERATOR ================= */
 
 const generateTokenAndRedirect = (req, res) => {
-  console.log("[OAuth Token Gen] 9. Generating JWT for user:", req.user?.email);
 
   if (!req.user) {
-    console.warn("[OAuth Token Gen] No req.user found, redirecting to login with error.");
     return res.redirect(
       `${CLIENT_URL}/login?error=authentication_failed`
     );
@@ -41,18 +39,19 @@ const generateTokenAndRedirect = (req, res) => {
   };
 
   jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" }, (err, token) => {
+
     if (err) {
-      console.error("[OAuth Token Gen] JWT Error:", err);
-      if (err.stack) console.error(err.stack);
+      console.error("JWT Error:", err);
       return res.redirect(
         `${CLIENT_URL}/login?error=token_error`
       );
     }
 
-    console.log("[OAuth Token Gen] 10. Redirecting to client with token");
     // IMPORTANT FIX
     return res.redirect(`${CLIENT_URL}/login?token=${token}`);
+
   });
+
 };
 
 
@@ -90,49 +89,13 @@ router.get(
 
 /* ================= LINKEDIN ================= */
 
-router.get(
-  "/linkedin",
-  (req, res, next) => {
-    console.log("[LinkedIn OAuth] 1. Authorization request initiated");
-    next();
-  },
-  passport.authenticate("linkedin")
-);
+router.get("/linkedin", passport.authenticate("linkedin"));
 
 router.get(
   "/linkedin/callback",
-  (req, res, next) => {
-    console.log("[LinkedIn OAuth] 2. Callback reached. Query params:", req.query);
-    next();
-  },
-  (req, res, next) => {
-    console.log("[LinkedIn OAuth] 4. Authenticating with passport");
-    passport.authenticate("linkedin", (err, user, info) => {
-      console.log("[LinkedIn OAuth] 5. Passport verify callback completed");
-      
-      if (err) {
-        console.error("[LinkedIn OAuth] Error during passport authentication:", err);
-        if (err.stack) console.error(err.stack);
-        return res.redirect(`${CLIENT_URL}/login`);
-      }
-      
-      if (!user) {
-        console.warn("[LinkedIn OAuth] Authentication failed, no user returned. Info:", info);
-        return res.redirect(`${CLIENT_URL}/login`);
-      }
-      
-      console.log("[LinkedIn OAuth] User authenticated successfully, logging in user ID:", user._id);
-      req.logIn(user, (loginErr) => {
-        if (loginErr) {
-          console.error("[LinkedIn OAuth] Login error:", loginErr);
-          if (loginErr.stack) console.error(loginErr.stack);
-          return res.redirect(`${CLIENT_URL}/login`);
-        }
-        console.log("[LinkedIn OAuth] 8. User successfully logged in, proceeding to JWT generation");
-        next();
-      });
-    })(req, res, next);
-  },
+  passport.authenticate("linkedin", {
+    failureRedirect: `${CLIENT_URL}/login`,
+  }),
   generateTokenAndRedirect
 );
 

@@ -1,7 +1,8 @@
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const GithubStrategy = require("passport-github2").Strategy;
-const OpenIDConnectStrategy = require("passport-openidconnect").Strategy;
+const OAuth2Strategy = require("passport-oauth2").Strategy;
+const axios = require("axios");
 const User = require("../models/User");
 const BACKEND_URL = process.env.BACKEND_URL;
 
@@ -134,83 +135,88 @@ passport.use(
 /* ================= LINKEDIN LOGIN ================= */
 
 
-passport.use(
-  "linkedin",
-  new OpenIDConnectStrategy(
-    {
-      issuer: "https://www.linkedin.com",
-      authorizationURL: "https://www.linkedin.com/oauth/v2/authorization",
-      tokenURL: "https://www.linkedin.com/oauth/v2/accessToken",
-      userInfoURL: "https://api.linkedin.com/v2/userinfo",
-      clientID: process.env.LINKEDIN_CLIENT_ID,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-      callbackURL: process.env.LINKEDIN_CALLBACK_URL || `${BACKEND_URL}/api/auth/linkedin/callback`,
-      scope: ["openid", "profile", "email"]
-    },
-    async (issuer, profile, done) => {
-      console.log("[LinkedIn OAuth] 3. Passport verify callback reached.");
-      console.log("[LinkedIn OAuth] Issuer:", issuer);
-      console.log("[LinkedIn OAuth] Raw Profile from LinkedIn:", JSON.stringify(profile, null, 2));
+const linkedInStrategy = new OAuth2Strategy(
+  {
+    authorizationURL: "https://www.linkedin.com/oauth/v2/authorization",
+    tokenURL: "https://www.linkedin.com/oauth/v2/accessToken",
+    clientID: process.env.LINKEDIN_CLIENT_ID,
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
+    callbackURL: process.env.LINKEDIN_CALLBACK_URL || `${BACKEND_URL}/api/auth/linkedin/callback`,
+    scope: ["openid", "profile", "email"],
+    state: true // Recommended by OAuth2/LinkedIn, works with express-session
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      const email = profile.email;
+      const name = profile.name;
+      const providerId = profile.providerId;
+      const picture = profile.picture;
 
-      try {
-        // Handle variations in profile format:
-        // passport-openidconnect usually provides standardized fields (emails, displayName, photos)
-        // but raw JSON is available in profile._json
-        const jsonProfile = profile._json || profile;
-        
-        const email = profile.emails?.[0]?.value || jsonProfile.email;
-        
-        // Build name carefully considering possible missing fields
-        let name = profile.displayName || jsonProfile.name;
-        if (!name && (jsonProfile.given_name || jsonProfile.family_name)) {
-          name = `${jsonProfile.given_name || ''} ${jsonProfile.family_name || ''}`.trim();
-        }
-
-        const providerId = profile.id || jsonProfile.sub;
-        const picture = profile.photos?.[0]?.value || jsonProfile.picture;
-
-        console.log("[LinkedIn OAuth] Extracted Data:", { email, name, providerId, picture });
-
-        if (!email) {
-          console.warn("[LinkedIn OAuth] Email is undefined. Cannot proceed without email.");
-          return done(new Error("LinkedIn email is missing or undefined"), null);
-        }
-
-        console.log("[LinkedIn OAuth] 6. Database lookup for user with email:", email);
-        let user = await User.findOne({ email: email });
-
-        if (!user) {
-          console.log("[LinkedIn OAuth] 7a. User not found. Creating new user.");
-          user = new User({
-            name: name || "LinkedIn User",
-            email: email,
-            providerId: providerId,
-            provider: "linkedin",
-            profileImage: picture
-          });
-          await user.save();
-          console.log("[LinkedIn OAuth] New user created successfully:", user._id);
-        } else {
-          console.log("[LinkedIn OAuth] 7b. User found. Syncing profile details.");
-          // Sync profile details
-          user.name = name || user.name;
-          user.profileImage = picture || user.profileImage;
-          if (!user.providerId || user.provider === "local") {
-            user.providerId = providerId;
-            user.provider = "linkedin";
-          }
-          await user.save();
-          console.log("[LinkedIn OAuth] User updated successfully:", user._id);
-        }
-        
-        console.log("[LinkedIn OAuth] Verify callback successful. Returning user.");
-        return done(null, user);
-      } catch (error) {
-        console.error("[LinkedIn OAuth] Error during verify callback:", error);
-        if (error.stack) console.error(error.stack);
-        return done(error, null);
+      if (!email) {
+        console.warn("[LinkedIn OAuth] Email is undefined from userinfo endpoint.");
+        return done(null, false, { message: "LinkedIn email is missing or undefined" });
       }
+
+      let user = await User.findOne({ email: email });
+
+      if (!user) {
+        user = new User({
+          name: name,
+          email: email,
+          providerId: providerId,
+          provider: "linkedin",
+          profileImage: picture
+        });
+        await user.save();
+      } else {
+        // Sync profile details
+        user.name = name || user.name;
+        user.profileImage = picture || user.profileImage;
+        if (!user.providerId || user.provider === "local") {
+          user.providerId = providerId;
+          user.provider = "linkedin";
+        }
+        await user.save();
+      }
+      
+      return done(null, user);
+    } catch (error) {
+      console.error("[LinkedIn OAuth2] Verify callback error:", error);
+      return done(error);
     }
-  )
+  }
 );
+
+// Override userProfile to fetch and normalize the profile exactly how we want it
+linkedInStrategy.userProfile = async function(accessToken, done) {
+  try {
+    const { data } = await axios.get("https://api.linkedin.com/v2/userinfo", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    const profile = {
+      provider: 'linkedin',
+      _raw: JSON.stringify(data),
+      _json: data,
+      email: data.email || data.emailAddress,
+      name: data.name,
+      providerId: data.sub || data.id,
+      picture: data.picture || null
+    };
+
+    if (!profile.name && (data.given_name || data.family_name)) {
+      profile.name = `${data.given_name || ''} ${data.family_name || ''}`.trim();
+    }
+    if (!profile.name) profile.name = "LinkedIn User";
+
+    return done(null, profile);
+  } catch (error) {
+    console.error("[LinkedIn OAuth2] Failed to fetch user profile", error);
+    return done(error);
+  }
+};
+
+passport.use("linkedin", linkedInStrategy);
 module.exports = passport;

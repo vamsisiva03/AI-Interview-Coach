@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext();
 
@@ -22,7 +23,7 @@ export const AuthProvider = ({ children }) => {
         try {
 
           // Decode JWT locally
-          const decoded = JSON.parse(atob(token.split(".")[1]));
+          const decoded = jwtDecode(token);
 
           // Check if token has expired
           if (decoded.exp && decoded.exp * 1000 < Date.now()) {
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
 
     // Instantly set user from JWT so UI shows immediately
-    const decoded = JSON.parse(atob(newToken.split(".")[1]));
+    const decoded = jwtDecode(newToken);
     setUser(decoded.user);
 
     // Then fetch fresh profile from DB (includes latest profileImage)
